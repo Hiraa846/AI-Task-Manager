@@ -1,80 +1,64 @@
-import { useState, useEffect } from "react";
-import Header from "./components/Header";
-import AddTask from "./components/AddTask";
-import FilterBar from "./components/FilterBar";
+import { useEffect, useState } from "react";
+import TodoForm from "./components/TodoForm";
 import TodoList from "./components/TodoList";
-import Footer from "./components/Footer";
 import "./App.css";
 
-const STORAGE_KEY = "modern_todos_v1";
+function App() {
+  const [todos, setTodos] = useState(() => {
+    const savedTodos = localStorage.getItem("todos");
+    return savedTodos ? JSON.parse(savedTodos) : [];
+  });
 
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-}
+  const addTask = (text) => {
+    // Empty ya spaces-only task prevent karna
+    if (!text.trim()) return;
 
-function loadFromStorage() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
-}
+    const newTask = {
+      id: Date.now(),
+      text,
+      completed: false,
+    };
 
-export default function App() {
-  const [todos, setTodos] = useState(loadFromStorage);
-  const [filter, setFilter] = useState("all");
+    setTodos([newTask, ...todos]);
+  };
+
+  const deleteTask = (id) => {
+    setTodos(todos.filter((todo) => todo.id !== id));
+  };
+
+  const toggleComplete = (id) => {
+    setTodos(
+      todos.map((todo) =>
+        todo.id === id
+          ? { ...todo, completed: !todo.completed }
+          : todo
+      )
+    );
+  };
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    localStorage.setItem("todos", JSON.stringify(todos));
   }, [todos]);
-
-  function addTodo(text) {
-    const t = text.trim();
-    if (!t) return;
-    setTodos((prev) => [
-      { id: genId(), text: t, done: false, created: Date.now() },
-      ...prev,
-    ]);
-  }
-
-  function toggleTodo(id) {
-    setTodos((prev) =>
-      prev.map((todo) => (todo.id === id ? { ...todo, done: !todo.done } : todo))
-    );
-  }
-
-  function deleteTodo(id) {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
-  }
-
-  function clearDone() {
-    setTodos((prev) => prev.filter((todo) => !todo.done));
-  }
-
-  const visible =
-    filter === "all"
-      ? todos
-      : filter === "done"
-      ? todos.filter((t) => t.done)
-      : todos.filter((t) => !t.done);
-
-  const doneCount = todos.filter((t) => t.done).length;
-  const activeCount = todos.filter((t) => !t.done).length;
 
   return (
     <div className="app">
-      <Header total={todos.length} done={doneCount} />
-      <AddTask onAdd={addTodo} />
-      <FilterBar current={filter} onChange={setFilter} />
-      <TodoList
-        todos={visible}
-        filter={filter}
-        onToggle={toggleTodo}
-        onDelete={deleteTodo}
-      />
-      {todos.length > 0 && (
-        <Footer activeCount={activeCount} onClearDone={clearDone} hasDone={doneCount > 0} />
-      )}
+      <div className="todo-container">
+        <h1>Todo App</h1>
+
+        <TodoForm addTask={addTask} />
+
+        {todos.length === 0 ? (
+          <p>No tasks yet</p>
+        ) : (
+          <TodoList
+            todos={todos}
+            deleteTask={deleteTask}
+            toggleComplete={toggleComplete}
+          />
+        )}
+      </div>
     </div>
   );
 }
+
+export default App;
